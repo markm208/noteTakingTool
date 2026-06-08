@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture Notes Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .app-header {
+            background: #1a1a1a;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .step {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            background: #e63946;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .step-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .step-content {
+            margin-left: 2.5rem;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .file-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            background: #2a9d8f;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .file-btn:hover {
+            background: #238b7e;
+        }
+
+        .file-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .file-name {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .file-name.selected {
+            color: #2a9d8f;
+            font-weight: 500;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .preview-container {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .preview-container.active {
+            display: block;
+        }
+
+        .preview-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .preview-btn {
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .preview-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .preview-btn.primary {
+            background: #e63946;
+            color: white;
+            border-color: #e63946;
+        }
+
+        .preview-btn.primary:hover {
+            background: #c1121f;
+        }
+
+        .preview-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .preview-content {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .preview-content h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            color: #1a1a1a;
+            border-bottom: 2px solid #e63946;
+            padding-bottom: 0.25rem;
+        }
+
+        .preview-content h2 {
+            font-size: 1.35rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: #1a1a1a;
+            border-bottom: 2px solid #e63946;
+            padding-bottom: 0.25rem;
+        }
+
+        .preview-content h3 {
+            font-size: 1.15rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #2a9d8f;
+        }
+
+        .preview-content p {
+            margin-bottom: 1rem;
+        }
+
+        .preview-content ul, .preview-content ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        .preview-content li {
+            margin-bottom: 0.35rem;
+        }
+
+        .preview-content blockquote {
+            background: #f8f9fa;
+            border-left: 4px solid #2a9d8f;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .preview-content code {
+            background: #e9ecef;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+            font-size: 0.9em;
+        }
+
+        .preview-content pre {
+            background: #f8f9fa;
+            border-left: 4px solid #e63946;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 6px 6px 0;
+            overflow-x: auto;
+        }
+
+        .preview-content pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .preview-content img {
+            max-width: 100%;
+            height: auto;
+            margin: 1rem 0;
+            border-radius: 6px;
+        }
+
+        .preview-content a {
+            color: #e63946;
+        }
+
+        /* Editable section styles */
+        .editable-section {
+            position: relative;
+            padding: 0.5rem;
+            margin: -0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .editable-section:hover {
+            background: #fff8f8;
+        }
+
+        .editable-section:hover .section-controls {
+            opacity: 1;
+        }
+
+        .section-controls {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .section-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .section-btn.delete {
+            color: #e63946;
+            border-color: #e63946;
+        }
+
+        .section-btn.delete:hover {
+            background: #e63946;
+            color: white;
+        }
+
+        .section-btn.edit {
+            color: #457b9d;
+            border-color: #457b9d;
+        }
+
+        .section-btn.edit:hover {
+            background: #457b9d;
+            color: white;
+        }
+
+        .editable-section.deleted {
+            display: none;
+        }
+
+        .editable-section.editing textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.5rem;
+            font-family: "SF Mono", Monaco, monospace;
+            font-size: 0.85rem;
+            border: 1px solid #457b9d;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        .edit-actions {
+            margin-top: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Image status */
+        .image-status {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .image-status.warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .image-status.success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+
+        .image-list {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* highlight.js overrides */
+        .hljs {
+            background: transparent !important;
+        }
+
+        .instructions {
+            background: #e8f4f8;
+            border-left: 4px solid #457b9d;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>Lecture Notes Generator</h1>
+    </header>
+
+    <div class="app-container">
+        <div class="instructions">
+            <strong>How it works:</strong> Select your markdown file and images folder, edit the content if needed, then generate a self-contained HTML file that students can use to take notes.
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">1</span>
+                <span class="step-title">Select Markdown File</span>
+            </div>
+            <div class="step-content">
+                <div class="file-input-wrapper">
+                    <label class="file-btn" for="md-input">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                        </svg>
+                        Choose File
+                    </label>
+                    <input type="file" id="md-input" accept=".md,.markdown,.txt">
+                    <span class="file-name" id="md-filename">No file selected</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">2</span>
+                <span class="step-title">Select Images Folder (Optional)</span>
+            </div>
+            <div class="step-content">
+                <div class="file-input-wrapper">
+                    <label class="file-btn" for="img-input">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                        Choose Folder
+                    </label>
+                    <input type="file" id="img-input" webkitdirectory multiple>
+                    <span class="file-name" id="img-foldername">No folder selected</span>
+                </div>
+                <div id="image-status"></div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <span class="step-number">3</span>
+                <span class="step-title">Edit & Generate</span>
+            </div>
+            <div class="step-content">
+                <div class="preview-container" id="preview-container">
+                    <div class="preview-toolbar">
+                        <button class="preview-btn" id="undo-btn" disabled>Undo Delete</button>
+                        <button class="preview-btn primary" id="generate-btn">Generate HTML</button>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+                        Hover over any section to edit or delete it. Deleted sections won't appear in the final output.
+                    </p>
+                    <div class="preview-content" id="preview-content"></div>
+                </div>
+                <div id="no-preview" style="color: #888; font-style: italic;">
+                    Select a markdown file to preview
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let markdownContent = '';
+        let markdownSections = [];
+        let deletedSections = [];
+        let imageFiles = new Map(); // path -> base64 data URL
+        let documentTitle = 'Lecture Notes';
+        let sourceFilename = 'lecture-notes'; // original markdown filename without extension
+
+        // Elements
+        const mdInput = document.getElementById('md-input');
+        const imgInput = document.getElementById('img-input');
+        const mdFilename = document.getElementById('md-filename');
+        const imgFoldername = document.getElementById('img-foldername');
+        const imageStatus = document.getElementById('image-status');
+        const previewContainer = document.getElementById('preview-container');
+        const previewContent = document.getElementById('preview-content');
+        const noPreview = document.getElementById('no-preview');
+        const undoBtn = document.getElementById('undo-btn');
+        const generateBtn = document.getElementById('generate-btn');
+
+        // Configure marked
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return code;
+            }
+        });
+
+        // Parse markdown into sections
+        function parseIntoSections(md) {
+            const lines = md.split('\n');
+            const sections = [];
+            let currentSection = [];
+            let inCodeBlock = false;
+
+            for (const line of lines) {
+                if (line.startsWith('```')) {
+                    inCodeBlock = !inCodeBlock;
+                    currentSection.push(line);
+                } else if (!inCodeBlock && line.match(/^#{1,6}\s/) && currentSection.length > 0) {
+                    // New heading starts a new section
+                    sections.push(currentSection.join('\n'));
+                    currentSection = [line];
+                } else if (!inCodeBlock && line.trim() === '' && currentSection.length > 0) {
+                    // Empty line ends a section (unless in code block)
+                    currentSection.push(line);
+                    const content = currentSection.join('\n').trim();
+                    if (content) {
+                        sections.push(content);
+                    }
+                    currentSection = [];
+                } else {
+                    currentSection.push(line);
+                }
+            }
+
+            // Don't forget the last section
+            if (currentSection.length > 0) {
+                const content = currentSection.join('\n').trim();
+                if (content) {
+                    sections.push(content);
+                }
+            }
+
+            return sections;
+        }
+
+        // Extract title from markdown
+        function extractTitle(md) {
+            const match = md.match(/^#\s+(.+)$/m);
+            return match ? match[1].trim() : 'Lecture Notes';
+        }
+
+        // Find image references in markdown
+        function findImageReferences(md) {
+            const regex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+            const refs = [];
+            let match;
+            while ((match = regex.exec(md)) !== null) {
+                refs.push({
+                    full: match[0],
+                    alt: match[1],
+                    path: match[2]
+                });
+            }
+            return refs;
+        }
+
+        // Match image references to uploaded files
+        function matchImages(refs, files) {
+            const matched = [];
+            const unmatched = [];
+
+            for (const ref of refs) {
+                // Skip URLs
+                if (ref.path.startsWith('http://') || ref.path.startsWith('https://') || ref.path.startsWith('data:')) {
+                    matched.push({ ...ref, status: 'url' });
+                    continue;
+                }
+
+                // Normalize the path for matching
+                const normalizedRefPath = ref.path.replace(/^\.\.\//, '').replace(/^\.\//, '');
+                const refFilename = normalizedRefPath.split('/').pop();
+
+                let found = false;
+
+                // Try exact path match first
+                for (const [filePath, dataUrl] of files) {
+                    if (filePath.endsWith(normalizedRefPath) || filePath === normalizedRefPath) {
+                        matched.push({ ...ref, dataUrl, status: 'matched' });
+                        found = true;
+                        break;
+                    }
+                }
+
+                // Try filename-only match
+                if (!found) {
+                    for (const [filePath, dataUrl] of files) {
+                        const fileName = filePath.split('/').pop();
+                        if (fileName === refFilename) {
+                            matched.push({ ...ref, dataUrl, status: 'matched' });
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!found) {
+                    unmatched.push(ref);
+                }
+            }
+
+            return { matched, unmatched };
+        }
+
+        // Read file as data URL
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Handle markdown file selection
+        mdInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            mdFilename.textContent = file.name;
+            mdFilename.classList.add('selected');
+
+            // Store filename without extension for later use
+            sourceFilename = file.name.replace(/\.(md|markdown|txt)$/i, '');
+
+            const text = await file.text();
+            markdownContent = text;
+            documentTitle = extractTitle(text);
+            markdownSections = parseIntoSections(text);
+            deletedSections = [];
+
+            renderPreview();
+            updateImageStatus();
+        });
+
+        // Handle images folder selection
+        imgInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            // Get folder name from first file's path
+            const firstPath = files[0].webkitRelativePath;
+            const folderName = firstPath.split('/')[0];
+            imgFoldername.textContent = folderName + '/ (' + files.length + ' files)';
+            imgFoldername.classList.add('selected');
+
+            // Filter for image files and read them
+            imageFiles.clear();
+            const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'];
+
+            for (const file of files) {
+                const ext = '.' + file.name.split('.').pop().toLowerCase();
+                if (imageExtensions.includes(ext)) {
+                    const dataUrl = await readFileAsDataURL(file);
+                    // Store with the relative path (minus the root folder name)
+                    const relativePath = file.webkitRelativePath.split('/').slice(1).join('/');
+                    imageFiles.set(relativePath, dataUrl);
+                }
+            }
+
+            updateImageStatus();
+            if (markdownContent) {
+                renderPreview();
+            }
+        });
+
+        // Update image status display
+        function updateImageStatus() {
+            if (!markdownContent) {
+                imageStatus.innerHTML = '';
+                return;
+            }
+
+            const refs = findImageReferences(markdownContent);
+            if (refs.length === 0) {
+                imageStatus.innerHTML = '<div class="image-status success">No images referenced in this file.</div>';
+                return;
+            }
+
+            const { matched, unmatched } = matchImages(refs, imageFiles);
+
+            if (unmatched.length === 0) {
+                imageStatus.innerHTML = `
+                    <div class="image-status success">
+                        All ${refs.length} image(s) matched!
+                    </div>
+                `;
+            } else if (imageFiles.size === 0) {
+                imageStatus.innerHTML = `
+                    <div class="image-status warning">
+                        Found ${refs.length} image reference(s). Select an images folder to embed them.
+                        <div class="image-list">${refs.map(r => r.path).join('<br>')}</div>
+                    </div>
+                `;
+            } else {
+                imageStatus.innerHTML = `
+                    <div class="image-status warning">
+                        ${matched.length} of ${refs.length} images matched. Missing:
+                        <div class="image-list">${unmatched.map(r => r.path).join('<br>')}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Process markdown to embed images
+        function processMarkdownWithImages(md) {
+            const refs = findImageReferences(md);
+            let processed = md;
+
+            for (const ref of refs) {
+                if (ref.path.startsWith('http://') || ref.path.startsWith('https://') || ref.path.startsWith('data:')) {
+                    continue;
+                }
+
+                const normalizedRefPath = ref.path.replace(/^\.\.\//, '').replace(/^\.\//, '');
+                const refFilename = normalizedRefPath.split('/').pop();
+
+                // Try to find matching image
+                for (const [filePath, dataUrl] of imageFiles) {
+                    const fileName = filePath.split('/').pop();
+                    if (filePath.endsWith(normalizedRefPath) || filePath === normalizedRefPath || fileName === refFilename) {
+                        processed = processed.replace(ref.full, `![${ref.alt}](${dataUrl})`);
+                        break;
+                    }
+                }
+            }
+
+            return processed;
+        }
+
+        // Render preview with editable sections
+        function renderPreview() {
+            noPreview.style.display = 'none';
+            previewContainer.classList.add('active');
+
+            const html = markdownSections.map((section, index) => {
+                const isDeleted = deletedSections.includes(index);
+                const processedSection = processMarkdownWithImages(section);
+                const renderedContent = marked.parse(processedSection);
+
+                return `
+                    <div class="editable-section ${isDeleted ? 'deleted' : ''}" data-index="${index}">
+                        <div class="section-controls">
+                            <button class="section-btn edit" onclick="editSection(${index})">Edit</button>
+                            <button class="section-btn delete" onclick="deleteSection(${index})">Delete</button>
+                        </div>
+                        <div class="section-content">${renderedContent}</div>
+                    </div>
+                `;
+            }).join('');
+
+            previewContent.innerHTML = html;
+            hljs.highlightAll();
+            updateUndoButton();
+        }
+
+        // Edit a section
+        window.editSection = function(index) {
+            const section = document.querySelector(`.editable-section[data-index="${index}"]`);
+            const contentDiv = section.querySelector('.section-content');
+            const originalMd = markdownSections[index];
+
+            section.classList.add('editing');
+            contentDiv.innerHTML = `
+                <textarea>${originalMd}</textarea>
+                <div class="edit-actions">
+                    <button class="preview-btn" onclick="saveSection(${index})">Save</button>
+                    <button class="preview-btn" onclick="cancelEdit(${index})">Cancel</button>
+                </div>
+            `;
+
+            const textarea = contentDiv.querySelector('textarea');
+            textarea.style.height = Math.max(100, textarea.scrollHeight) + 'px';
+            textarea.focus();
+        };
+
+        // Save section edit
+        window.saveSection = function(index) {
+            const section = document.querySelector(`.editable-section[data-index="${index}"]`);
+            const textarea = section.querySelector('textarea');
+            markdownSections[index] = textarea.value;
+            section.classList.remove('editing');
+            renderPreview();
+        };
+
+        // Cancel section edit
+        window.cancelEdit = function(index) {
+            const section = document.querySelector(`.editable-section[data-index="${index}"]`);
+            section.classList.remove('editing');
+            renderPreview();
+        };
+
+        // Delete a section
+        window.deleteSection = function(index) {
+            if (!deletedSections.includes(index)) {
+                deletedSections.push(index);
+                renderPreview();
+            }
+        };
+
+        // Update undo button state
+        function updateUndoButton() {
+            undoBtn.disabled = deletedSections.length === 0;
+        }
+
+        // Undo last delete
+        undoBtn.addEventListener('click', () => {
+            if (deletedSections.length > 0) {
+                deletedSections.pop();
+                renderPreview();
+            }
+        });
+
+        // Generate final HTML
+        generateBtn.addEventListener('click', () => {
+            const finalSections = markdownSections.filter((_, index) => !deletedSections.includes(index));
+            const finalMarkdown = finalSections.join('\n\n');
+            const processedMarkdown = processMarkdownWithImages(finalMarkdown);
+
+            const html = generateOutputHtml(documentTitle, processedMarkdown, sourceFilename);
+
+            // Download
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = sourceFilename + '.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Generate a unique ID for each generated file
+        function generateUniqueId() {
+            if (crypto.randomUUID) {
+                return crypto.randomUUID();
+            }
+            // Fallback for older browsers
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Generate the output HTML with note-taking functionality
+        function generateOutputHtml(title, markdown, filename) {
+            // Use a unique ID so each generated file has separate note storage
+            const pageId = generateUniqueId();
+
+            // Parse markdown with highlight.js for code
+            marked.setOptions({
+                highlight: function(code, lang) {
+                    if (lang && hljs.getLanguage(lang)) {
+                        return hljs.highlight(code, { language: lang }).value;
+                    }
+                    return code;
+                }
+            });
+
+            // First render normally
+            let contentHtml = marked.parse(markdown);
+
+            // Post-process to add section IDs and note anchors
+            let sectionCounter = 0;
+            const addNoteAnchor = (match, tag, attrs, content, closeTag) => {
+                const id = `section-${sectionCounter++}`;
+                const existingAttrs = attrs ? attrs + ' ' : '';
+                return `<${tag} ${existingAttrs}data-section-id="${id}">${content}</${closeTag}>\n<div class="note-anchor" data-for="${id}"></div>`;
+            };
+
+            // Add section IDs to block elements
+            contentHtml = contentHtml
+                .replace(/<(p)(\s[^>]*)?>([^]*?)<\/(p)>/gi, addNoteAnchor)
+                .replace(/<(h[1-6])(\s[^>]*)?>([^]*?)<\/(h[1-6])>/gi, addNoteAnchor)
+                .replace(/<(pre)(\s[^>]*)?>([^]*?)<\/(pre)>/gi, addNoteAnchor)
+                .replace(/<(ul)(\s[^>]*)?>([^]*?)<\/(ul)>/gi, addNoteAnchor)
+                .replace(/<(ol)(\s[^>]*)?>([^]*?)<\/(ol)>/gi, addNoteAnchor)
+                .replace(/<(blockquote)(\s[^>]*)?>([^]*?)<\/(blockquote)>/gi, addNoteAnchor);
+
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(title)}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github.min.css">
+    <scr` + `ipt src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></scr` + `ipt>
+    <style>
+        ${getOutputStyles()}
+    </style>
+</head>
+<body onload="hljs.highlightAll()">
+    <div class="toolbar">
+        <button class="toolbar-btn" id="toc-btn" title="Table of Contents">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 6h16M4 12h16M4 18h10"/>
+            </svg>
+        </button>
+        <button class="toolbar-btn" id="font-down-btn" title="Decrease font size">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14"/>
+            </svg>
+        </button>
+        <button class="toolbar-btn" id="font-up-btn" title="Increase font size">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+        </button>
+        <button class="toolbar-btn" id="toggle-notes-btn" title="Expand All Notes">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 9l6 6 6-6"/>
+            </svg>
+            <span class="note-count"></span>
+        </button>
+        <button class="toolbar-btn" id="export-html-btn" title="Download page with notes">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+        </button>
+        <button class="toolbar-btn" id="print-btn" title="Print / Save as PDF">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+        </button>
+        <button class="toolbar-btn info-btn" id="info-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 16v-4M12 8h.01"/>
+            </svg>
+            <div class="info-tooltip">
+                <strong>About Your Notes</strong><br>
+                Your notes are stored locally in this browser only.
+                They are not visible to your instructor and will be lost if you clear browser data.
+                Use the export button to save a permanent copy.
+            </div>
+        </button>
+    </div>
+    <div class="toc-panel" id="toc-panel">
+        <div class="toc-header">
+            <strong>Table of Contents</strong>
+            <button class="toc-close" id="toc-close">&times;</button>
+        </div>
+        <nav class="toc-nav" id="toc-nav"></nav>
+    </div>
+
+    <main class="content">
+        ${contentHtml}
+    </main>
+
+    <scr` + `ipt>
+        ${getOutputScript(pageId, title, filename)}
+    </scr` + `ipt>
+</body>
+</html>`;
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function getOutputStyles() {
+            return `
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            color: #333;
+        }
+
+        .toolbar {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 1000;
+        }
+
+        .toolbar-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+        }
+
+        .toolbar-btn:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+            transform: scale(1.05);
+        }
+
+        .toolbar-btn .note-count {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #e63946;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 600;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+        }
+
+        .toolbar-btn .note-count:empty {
+            display: none;
+        }
+
+        .toolbar-btn {
+            position: relative;
+        }
+
+        .info-btn {
+            background: #457b9d;
+            border-color: #457b9d;
+            color: white;
+        }
+
+        .info-btn:hover {
+            background: #3a6a87;
+            border-color: #3a6a87;
+        }
+
+        .info-tooltip {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 0.5rem;
+            width: 260px;
+            padding: 0.75rem;
+            background: #333;
+            color: white;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            border-radius: 6px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            text-align: left;
+            pointer-events: none;
+        }
+
+        .info-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            right: 16px;
+            border: 6px solid transparent;
+            border-top-color: #333;
+        }
+
+        .info-btn:hover .info-tooltip,
+        .info-btn:focus .info-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .toc-panel {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 5rem;
+            width: 280px;
+            max-height: 400px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            z-index: 999;
+            display: none;
+            flex-direction: column;
+        }
+
+        .toc-panel.open {
+            display: flex;
+        }
+
+        .toc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .toc-close {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            color: #888;
+            line-height: 1;
+        }
+
+        .toc-close:hover {
+            color: #333;
+        }
+
+        .toc-nav {
+            overflow-y: auto;
+            padding: 0.5rem 0;
+        }
+
+        .toc-item {
+            display: block;
+            padding: 0.4rem 1rem;
+            color: #333;
+            text-decoration: none;
+            font-size: 0.85rem;
+            border-left: 3px solid transparent;
+            transition: all 0.15s;
+        }
+
+        .toc-item:hover {
+            background: #f8f9fa;
+            border-left-color: #e63946;
+        }
+
+        .toc-item.toc-h2 {
+            padding-left: 1.5rem;
+            font-size: 0.8rem;
+        }
+
+        .toc-item.toc-h3 {
+            padding-left: 2rem;
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .toc-count {
+            color: #2a9d8f;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            color: #1a1a1a;
+            border-bottom: 2px solid #e63946;
+            padding-bottom: 0.25rem;
+        }
+
+        h2 {
+            font-size: 1.35rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: #1a1a1a;
+            border-bottom: 2px solid #e63946;
+            padding-bottom: 0.25rem;
+        }
+
+        h3 {
+            font-size: 1.15rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #2a9d8f;
+        }
+
+        h4, h5, h6 {
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.35rem;
+        }
+
+        blockquote {
+            background: #f8f9fa;
+            border-left: 4px solid #2a9d8f;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 6px 6px 0;
+        }
+
+        blockquote p:last-child {
+            margin-bottom: 0;
+        }
+
+        code {
+            background: #e9ecef;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #f8f9fa;
+            border-left: 4px solid #e63946;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 6px 6px 0;
+            overflow-x: auto;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            margin: 1rem 0;
+            border-radius: 6px;
+        }
+
+        a {
+            color: #e63946;
+        }
+
+        a:hover {
+            color: #c1121f;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 2rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        th {
+            background: #f8f9fa;
+        }
+
+        .note-anchor {
+            margin-bottom: 0.5rem;
+        }
+
+        .add-note-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.5rem;
+            background: transparent;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: #888;
+            transition: all 0.2s;
+        }
+
+        .add-note-btn:hover {
+            background: #f8f9fa;
+            border-color: #2a9d8f;
+            color: #2a9d8f;
+        }
+
+        .note-container {
+            background: #e8f4f8;
+            border-left: 4px solid #457b9d;
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 0 1rem 0;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .note-container.needs-clarification {
+            background: #fee2e2;
+            border-left-color: #e63946;
+        }
+
+        .note-container.needs-clarification .note-label {
+            color: #c1121f;
+        }
+
+        .clarification-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .clarification-checkbox input {
+            cursor: pointer;
+        }
+
+        .clarification-checkbox label {
+            cursor: pointer;
+        }
+
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .note-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #457b9d;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .note-actions button {
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .note-actions button:hover {
+            background: #f0f0f0;
+        }
+
+        .note-actions .delete-btn:hover {
+            background: #fee;
+            border-color: #e63946;
+            color: #e63946;
+        }
+
+        .note-container.editing .edit-btn,
+        .note-container.editing .delete-btn {
+            display: none;
+        }
+
+        .note-editor {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.5rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            margin-bottom: 0.5rem;
+        }
+
+        .note-editor:focus {
+            outline: none;
+            border-color: #457b9d;
+        }
+
+        .note-content {
+            font-size: 0.9rem;
+        }
+
+        .note-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .note-meta {
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 0.5rem;
+        }
+
+        .collapsed .note-content,
+        .collapsed .note-meta,
+        .collapsed .clarification-checkbox {
+            display: none;
+        }
+
+        .collapsed .note-header {
+            margin-bottom: 0;
+        }
+
+        .expand-indicator {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .hljs {
+            background: transparent !important;
+        }
+
+        @media print {
+            .toolbar,
+            .toc-panel,
+            .add-note-btn,
+            .note-actions,
+            .clarification-checkbox {
+                display: none !important;
+            }
+
+            .note-container.needs-clarification::before {
+                content: "⚠ Needs clarification";
+                display: block;
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: #c1121f;
+                margin-bottom: 0.5rem;
+            }
+
+            .note-container {
+                break-inside: avoid;
+            }
+
+            .collapsed .note-content,
+            .collapsed .note-meta {
+                display: block !important;
+            }
+
+            body {
+                max-width: none;
+                padding: 0;
+            }
+        }
+            `;
+        }
+
+        function getOutputScript(pageId, title, filename) {
+            const escapedTitle = escapeHtml(title);
+            const safeFilename = escapeHtml(filename);
+            return `
+(function() {
+    var PAGE_ID = '${pageId}';
+    var STORAGE_KEY = 'lecture-notes:' + PAGE_ID;
+
+    function parseMarkdown(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
+            .replace(/\\*(.+?)\\*/g, '<em>$1</em>')
+            .replace(/\`(.+?)\`/g, '<code>$1</code>')
+            .replace(/\\n/g, '<br>');
+    }
+
+    function getNotes() {
+        try {
+            var data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : {};
+        } catch (e) {
+            console.error('Error reading notes:', e);
+            return {};
+        }
+    }
+
+    function saveNote(sectionId, text, needsClarification) {
+        var notes = getNotes();
+        if (text.trim()) {
+            notes[sectionId] = {
+                text: text,
+                timestamp: (notes[sectionId] && notes[sectionId].timestamp) || Date.now(),
+                lastEdited: Date.now(),
+                needsClarification: needsClarification || false
+            };
+        } else {
+            delete notes[sectionId];
+        }
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+        } catch (e) {
+            alert('Unable to save note. Local storage may be full.');
+        }
+    }
+
+    function toggleClarification(sectionId, needsClarification) {
+        var notes = getNotes();
+        if (notes[sectionId]) {
+            notes[sectionId].needsClarification = needsClarification;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+        }
+    }
+
+    function deleteNote(sectionId) {
+        var notes = getNotes();
+        delete notes[sectionId];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    }
+
+    function formatDate(timestamp) {
+        return new Date(timestamp).toLocaleString();
+    }
+
+    function renderAddButton(anchor, sectionId) {
+        anchor.innerHTML = '<button class="add-note-btn" data-section="' + sectionId + '">' +
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+            '<path d="M12 5v14M5 12h14"/>' +
+            '</svg> Add note</button>';
+    }
+
+    function renderNoteEditor(anchor, sectionId, existingText) {
+        existingText = existingText || '';
+        var notes = getNotes();
+        var noteData = notes[sectionId];
+        var needsClarification = (noteData && noteData.needsClarification) || false;
+        var clarificationClass = needsClarification ? 'needs-clarification' : '';
+        var checkboxId = 'clarify-edit-' + sectionId;
+
+        anchor.innerHTML = '<div class="note-container editing ' + clarificationClass + '">' +
+            '<div class="note-header">' +
+            '<span class="note-label">My Note</span>' +
+            '<div class="note-actions">' +
+            '<button class="save-btn">Save</button>' +
+            '<button class="cancel-btn">Cancel</button>' +
+            '</div></div>' +
+            '<textarea class="note-editor" placeholder="Write your note here (using plain text or markdown)...">' + existingText + '</textarea>' +
+            '<div class="clarification-checkbox">' +
+            '<input type="checkbox" id="' + checkboxId + '"' + (needsClarification ? ' checked' : '') + '>' +
+            '<label for="' + checkboxId + '">I need clarification from the instructor</label>' +
+            '</div>' +
+            '</div>';
+
+        var container = anchor.querySelector('.note-container');
+        var textarea = anchor.querySelector('.note-editor');
+        var saveBtn = anchor.querySelector('.save-btn');
+        var cancelBtn = anchor.querySelector('.cancel-btn');
+        var clarifyCheckbox = anchor.querySelector('#' + checkboxId);
+
+        textarea.focus();
+
+        clarifyCheckbox.addEventListener('change', function() {
+            if (clarifyCheckbox.checked) {
+                container.classList.add('needs-clarification');
+            } else {
+                container.classList.remove('needs-clarification');
+            }
+        });
+
+        saveBtn.addEventListener('click', function() {
+            saveNote(sectionId, textarea.value, clarifyCheckbox.checked);
+            if (textarea.value.trim()) {
+                renderSavedNote(anchor, sectionId, textarea.value, false);
+            } else {
+                renderAddButton(anchor, sectionId);
+            }
+            updateToggleButton();
+        });
+
+        cancelBtn.addEventListener('click', function() {
+            var notes = getNotes();
+            if (notes[sectionId]) {
+                renderSavedNote(anchor, sectionId, notes[sectionId].text, false);
+            } else {
+                renderAddButton(anchor, sectionId);
+            }
+        });
+
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                saveBtn.click();
+            } else if (e.key === 'Escape') {
+                cancelBtn.click();
+            }
+        });
+    }
+
+    function renderSavedNote(anchor, sectionId, text, collapsed) {
+        var notes = getNotes();
+        var noteData = notes[sectionId];
+        var lastEdited = (noteData && noteData.lastEdited) ? formatDate(noteData.lastEdited) : '';
+        var needsClarification = (noteData && noteData.needsClarification) || false;
+        var collapsedClass = collapsed ? 'collapsed' : '';
+        var clarificationClass = needsClarification ? 'needs-clarification' : '';
+        var indicator = collapsed ? '&#9654;' : '&#9660;';
+        var checkboxId = 'clarify-' + sectionId;
+
+        anchor.innerHTML = '<div class="note-container ' + collapsedClass + ' ' + clarificationClass + '">' +
+            '<div class="note-header">' +
+            '<span class="note-label expand-indicator">' + indicator + ' My Note</span>' +
+            '<div class="note-actions">' +
+            '<button class="edit-btn">Edit</button>' +
+            '<button class="delete-btn">Delete</button>' +
+            '</div></div>' +
+            '<div class="note-content">' + parseMarkdown(text) + '</div>' +
+            '<div class="clarification-checkbox">' +
+            '<input type="checkbox" id="' + checkboxId + '"' + (needsClarification ? ' checked' : '') + '>' +
+            '<label for="' + checkboxId + '">I need clarification from the instructor</label>' +
+            '</div>' +
+            (lastEdited ? '<div class="note-meta">Last edited: ' + lastEdited + '</div>' : '') +
+            '</div>';
+
+        var container = anchor.querySelector('.note-container');
+        var expandIndicator = anchor.querySelector('.expand-indicator');
+        var editBtn = anchor.querySelector('.edit-btn');
+        var deleteBtn = anchor.querySelector('.delete-btn');
+        var clarifyCheckbox = anchor.querySelector('#' + checkboxId);
+
+        expandIndicator.addEventListener('click', function() {
+            container.classList.toggle('collapsed');
+            expandIndicator.innerHTML = container.classList.contains('collapsed')
+                ? '&#9654; My Note'
+                : '&#9660; My Note';
+        });
+
+        clarifyCheckbox.addEventListener('change', function() {
+            var isChecked = clarifyCheckbox.checked;
+            toggleClarification(sectionId, isChecked);
+            if (isChecked) {
+                container.classList.add('needs-clarification');
+            } else {
+                container.classList.remove('needs-clarification');
+            }
+        });
+
+        editBtn.addEventListener('click', function() {
+            renderNoteEditor(anchor, sectionId, text);
+        });
+
+        deleteBtn.addEventListener('click', function() {
+            if (confirm('Delete this note?')) {
+                deleteNote(sectionId);
+                renderAddButton(anchor, sectionId);
+                updateToggleButton();
+            }
+        });
+    }
+
+    var notesExpanded = false;
+
+    function updateToggleButton() {
+        var notes = getNotes();
+        var count = Object.keys(notes).length;
+        var btn = document.getElementById('toggle-notes-btn');
+        var svg = btn.querySelector('svg path');
+        var countSpan = btn.querySelector('.note-count');
+
+        if (notesExpanded) {
+            svg.setAttribute('d', 'M18 15l-6-6-6 6');
+            btn.title = 'Collapse All Notes';
+        } else {
+            svg.setAttribute('d', 'M6 9l6 6 6-6');
+            btn.title = 'Expand All Notes';
+        }
+
+        countSpan.textContent = count > 0 ? count : '';
+    }
+
+    function init() {
+        var notes = getNotes();
+        var anchors = document.querySelectorAll('.note-anchor');
+
+        anchors.forEach(function(anchor) {
+            var sectionId = anchor.dataset.for;
+            if (notes[sectionId]) {
+                renderSavedNote(anchor, sectionId, notes[sectionId].text, true);
+            } else {
+                renderAddButton(anchor, sectionId);
+            }
+
+            anchor.addEventListener('click', function(e) {
+                if (e.target.classList.contains('add-note-btn') || e.target.closest('.add-note-btn')) {
+                    renderNoteEditor(anchor, sectionId);
+                }
+            });
+        });
+
+        updateToggleButton();
+    }
+
+    document.getElementById('toggle-notes-btn').addEventListener('click', function() {
+        if (notesExpanded) {
+            document.querySelectorAll('.note-container:not(.collapsed)').forEach(function(container) {
+                container.classList.add('collapsed');
+                var indicator = container.querySelector('.expand-indicator');
+                if (indicator) {
+                    indicator.innerHTML = '&#9654; My Note';
+                }
+            });
+        } else {
+            document.querySelectorAll('.note-container.collapsed').forEach(function(container) {
+                container.classList.remove('collapsed');
+                var indicator = container.querySelector('.expand-indicator');
+                if (indicator) {
+                    indicator.innerHTML = '&#9660; My Note';
+                }
+            });
+        }
+        notesExpanded = !notesExpanded;
+        updateToggleButton();
+    });
+
+    document.getElementById('export-html-btn').addEventListener('click', function() {
+        var notes = getNotes();
+
+        // Clone the content and expand all notes for export
+        var contentEl = document.querySelector('.content');
+        var clonedContent = contentEl.cloneNode(true);
+
+        // Process each note anchor in the cloned content
+        clonedContent.querySelectorAll('.note-anchor').forEach(function(anchor) {
+            var sectionId = anchor.dataset.for;
+            if (notes[sectionId]) {
+                var noteData = notes[sectionId];
+                var clarificationClass = noteData.needsClarification ? ' needs-clarification' : '';
+                anchor.innerHTML = '<div class="note-container exported' + clarificationClass + '">' +
+                    '<div class="note-header"><span class="note-label">My Note</span></div>' +
+                    '<div class="note-content">' + parseMarkdown(noteData.text) + '</div>' +
+                    (noteData.needsClarification ? '<div class="clarification-flag">I need clarification from the instructor</div>' : '') +
+                    '</div>';
+            } else {
+                anchor.remove();
+            }
+        });
+
+        var html = '<!DOCTYPE html>\\n<html lang="en">\\n<head>\\n' +
+            '<meta charset="UTF-8">\\n' +
+            '<meta name="viewport" content="width=device-width, initial-scale=1.0">\\n' +
+            '<title>${escapedTitle} - With Notes</title>\\n' +
+            '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">\\n' +
+            '<style>\\n' +
+            '* { box-sizing: border-box; margin: 0; padding: 0; }\\n' +
+            'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; color: #333; }\\n' +
+            'h1 { font-size: 1.75rem; margin-bottom: 0.5rem; color: #1a1a1a; border-bottom: 2px solid #e63946; padding-bottom: 0.25rem; }\\n' +
+            'h2 { font-size: 1.35rem; margin-top: 2rem; margin-bottom: 0.75rem; color: #1a1a1a; border-bottom: 2px solid #e63946; padding-bottom: 0.25rem; }\\n' +
+            'h3 { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #2a9d8f; }\\n' +
+            'p { margin-bottom: 1rem; }\\n' +
+            'ul, ol { margin-bottom: 1rem; padding-left: 1.5rem; }\\n' +
+            'li { margin-bottom: 0.35rem; }\\n' +
+            'blockquote { background: #f8f9fa; border-left: 4px solid #2a9d8f; padding: 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; }\\n' +
+            'code { background: #e9ecef; padding: 0.15rem 0.4rem; border-radius: 3px; font-family: "SF Mono", Monaco, monospace; font-size: 0.9em; }\\n' +
+            'pre { background: #f8f9fa; border-left: 4px solid #e63946; padding: 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0; overflow-x: auto; }\\n' +
+            'pre code { background: none; padding: 0; font-size: 0.85em; }\\n' +
+            '.hljs { background: transparent !important; }\\n' +
+            'img { max-width: 100%; height: auto; margin: 1rem 0; border-radius: 6px; }\\n' +
+            'a { color: #e63946; }\\n' +
+            '.note-container.exported { background: #e8f4f8; border-left: 4px solid #457b9d; padding: 0.75rem 1rem; margin: 0.5rem 0 1rem 0; border-radius: 0 6px 6px 0; }\\n' +
+            '.note-container.exported.needs-clarification { background: #fee2e2; border-left-color: #e63946; }\\n' +
+            '.note-header { margin-bottom: 0.5rem; }\\n' +
+            '.note-label { font-size: 0.75rem; font-weight: 600; color: #457b9d; text-transform: uppercase; }\\n' +
+            '.needs-clarification .note-label { color: #c1121f; }\\n' +
+            '.note-content { font-size: 0.9rem; }\\n' +
+            '.clarification-flag { font-size: 0.75rem; color: #c1121f; font-weight: 500; margin-top: 0.5rem; }\\n' +
+            '.export-meta { text-align: center; color: #888; font-size: 0.8rem; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #ddd; }\\n' +
+            '</style>\\n</head>\\n<body>\\n' +
+            clonedContent.innerHTML +
+            '<div class="export-meta">Exported on ' + new Date().toLocaleDateString() + '</div>\\n' +
+            '</body>\\n</html>';
+
+        var blob = new Blob([html], { type: 'text/html' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = '${safeFilename}-with-notes.html';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('print-btn').addEventListener('click', function() {
+        document.querySelectorAll('.note-container.collapsed').forEach(function(container) {
+            container.classList.remove('collapsed');
+        });
+        window.print();
+    });
+
+    // Table of Contents
+    var tocBtn = document.getElementById('toc-btn');
+    var tocPanel = document.getElementById('toc-panel');
+    var tocClose = document.getElementById('toc-close');
+    var tocNav = document.getElementById('toc-nav');
+
+    function buildToc() {
+        var notes = getNotes();
+        var headings = document.querySelectorAll('.content h1, .content h2, .content h3');
+        var allElements = Array.from(document.querySelectorAll('.content [data-section-id]'));
+        var html = '';
+
+        headings.forEach(function(heading, index) {
+            var id = heading.id || 'heading-' + index;
+            if (!heading.id) heading.id = id;
+            var level = heading.tagName.toLowerCase();
+
+            // Find elements between this heading and the next heading
+            var headingIndex = allElements.indexOf(heading);
+            var nextHeading = headings[index + 1];
+            var nextHeadingIndex = nextHeading ? allElements.indexOf(nextHeading) : allElements.length;
+
+            // Count notes in this section
+            var noteCount = 0;
+            for (var i = headingIndex; i < nextHeadingIndex; i++) {
+                var el = allElements[i];
+                var sectionId = el.dataset.sectionId;
+                if (sectionId && notes[sectionId]) {
+                    noteCount++;
+                }
+            }
+
+            var countBadge = noteCount > 0 ? ' <span class="toc-count">(' + noteCount + ')</span>' : '';
+            html += '<a href="#' + id + '" class="toc-item toc-' + level + '">' + heading.textContent + countBadge + '</a>';
+        });
+        tocNav.innerHTML = html;
+    }
+
+    tocBtn.addEventListener('click', function() {
+        buildToc();
+        tocPanel.classList.toggle('open');
+    });
+
+    tocClose.addEventListener('click', function() {
+        tocPanel.classList.remove('open');
+    });
+
+    tocNav.addEventListener('click', function(e) {
+        if (e.target.classList.contains('toc-item')) {
+            tocPanel.classList.remove('open');
+        }
+    });
+
+    // Font size controls
+    var fontSize = parseFloat(localStorage.getItem('lecture-notes-fontsize')) || 100;
+    document.body.style.fontSize = fontSize + '%';
+
+    document.getElementById('font-up-btn').addEventListener('click', function() {
+        fontSize = Math.min(fontSize + 10, 250);
+        document.body.style.fontSize = fontSize + '%';
+        localStorage.setItem('lecture-notes-fontsize', fontSize);
+    });
+
+    document.getElementById('font-down-btn').addEventListener('click', function() {
+        fontSize = Math.max(fontSize - 10, 70);
+        document.body.style.fontSize = fontSize + '%';
+        localStorage.setItem('lecture-notes-fontsize', fontSize);
+    });
+
+    init();
+})();
+            `;
+        }
+    </script>
+</body>
+</html>
