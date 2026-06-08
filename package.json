@@ -1,0 +1,20 @@
+{
+  "name": "lecture-notes-tool",
+  "version": "1.0.0",
+  "description": "Convert markdown lecture notes to interactive HTML pages with student note-taking",
+  "main": "index.js",
+  "bin": {
+    "lecture-notes": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["markdown", "lecture", "notes", "education"],
+  "author": "Mark Mahoney",
+  "license": "MIT",
+  "dependencies": {
+    "marked": "^12.0.0",
+    "marked-highlight": "^2.1.0",
+    "highlight.js": "^11.9.0"
+  }
+}
