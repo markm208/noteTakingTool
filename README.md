@@ -2,7 +2,7 @@
 
 A web-based tool that converts markdown lecture notes into interactive HTML pages where students can add their own private annotations.
 
-**[Try it live →](https://markm208.github.io/vibeCodingInClassTools/note-taking-tool.html/)**
+**[Try it live →](https://markm208.github.io/vibeCodingInClassTools/note-taking-tool.html)**
 
 ## Why?
 
